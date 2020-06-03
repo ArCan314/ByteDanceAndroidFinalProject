@@ -20,4 +20,14 @@
         android:textStyle="bold"
         android:textSize="20sp"/>
 
+    <ImageView
+        android:id="@+id/media_play_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:minHeight="50dp"
+        android:minWidth="50dp"
+        android:src="@android:drawable/ic_media_play"
+        />
+
 </FrameLayout>
