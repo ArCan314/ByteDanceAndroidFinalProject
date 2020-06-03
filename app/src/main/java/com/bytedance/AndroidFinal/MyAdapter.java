@@ -1,5 +1,7 @@
 package com.bytedance.AndroidFinal;
 
+import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +19,11 @@ import java.util.List;
 
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     private List<ApiResponse> dataSet;
+    private Context context;
+
+    public MyAdapter(Context context) {
+        this.context = context;
+    }
 
     @NonNull
     @Override
@@ -33,6 +40,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         Glide.with(holder.imageView.getContext())
                 .load(dataSet.get(position).avatarUrl)
                 .into(holder.imageView);
+        holder.bind(dataSet.get(position).url);
     }
 
     @Override
@@ -42,15 +50,29 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
     public void setDataSet(List<ApiResponse> data) { dataSet = data; }
 
-    public static class MyViewHolder extends  RecyclerView.ViewHolder {
+    public  class MyViewHolder extends  RecyclerView.ViewHolder {
 
         public TextView videoName;
         public ImageView imageView;
-
+        public ImageView playerIcon;
+        public String url;
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
             videoName = itemView.findViewById(R.id.video_name);
             imageView = itemView.findViewById(R.id.avatar_image_view);
+            playerIcon = itemView.findViewById(R.id.play_icon);
+            playerIcon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, VideoPlayerActivity.class);
+                    intent.putExtra("url", url);
+                    context.startActivity(intent);
+                }
+            });
+        }
+
+        public void bind(String url) {
+            this.url = url;
         }
     }
 }

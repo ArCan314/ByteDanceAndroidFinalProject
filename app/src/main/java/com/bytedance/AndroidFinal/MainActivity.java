@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recycler_view);
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        myAdapter = new MyAdapter();
+        myAdapter = new MyAdapter(this);
         recyclerView.setAdapter(myAdapter);
         getData();
     }
