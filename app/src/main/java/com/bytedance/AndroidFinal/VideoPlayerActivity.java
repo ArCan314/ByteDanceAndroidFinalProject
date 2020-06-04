@@ -26,9 +26,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private ImageView playIcon;
     private TextView textView;
     private LottieAnimationView animationView;
+    private ImageView beforeLike;
+    private ImageView afterLike;
+    private TextView likeCount;
     private static int progress = -1;
     private long firstPressTime = 0;
     private long mNow = 0;
+    private boolean like = false;
+    private int count;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,7 +53,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
         textView = findViewById(R.id.des);
         textView.setText(intent.getStringExtra("description"));
         playIcon = findViewById(R.id.play_icon1);
+        beforeLike = findViewById(R.id.beforelike);
+        afterLike = findViewById(R.id.afterlike);
+        likeCount = findViewById(R.id.like_count);
+        count = intent.getIntExtra("likecount", 0);
         animationView = findViewById(R.id.animation_view);
+        setLikeCount(count);
 
         ObjectAnimator scaleXAnimator = ObjectAnimator.ofFloat(playIcon,
                 "scaleX", 0.45f, 0.3f);
@@ -70,6 +80,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
             animator1.start();
         };
 
+        beforeLike.setOnClickListener(v -> {
+            beforeLike.setVisibility(View.INVISIBLE);
+            afterLike.setVisibility(View.VISIBLE);
+            setLikeCount(++count);
+            like = true;
+        });
+
+        afterLike.setOnClickListener(v -> {
+            afterLike.setVisibility(View.INVISIBLE);
+            beforeLike.setVisibility(View.VISIBLE);
+            setLikeCount(--count);
+            like = false;
+        });
+
         Handler clickhandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -81,6 +105,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         animator1.start();
                         animationView.playAnimation();
                         handler.postDelayed(runnable, 2000);
+                        if(!like) {
+                            beforeLike.setVisibility(View.INVISIBLE);
+                            afterLike.setVisibility(View.VISIBLE);
+                            setLikeCount(++count);
+                            like = true;
+                        }
                         break;
                     case 2:
                         if(videoView.isPlaying()) {
@@ -119,5 +149,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
     public void onPause() {
         super.onPause();
         progress = videoView.getCurrentPosition();
+    }
+
+    public void setLikeCount(int count) {
+        if(count <= 9999)
+            likeCount.setText(Integer.toString(count));
+        else {
+            int a = count / 10000;
+            int b = (count % 10000) / 1000;
+            likeCount.setText(a + "." + b + "w");
+        }
     }
 }
