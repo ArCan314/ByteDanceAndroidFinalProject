@@ -8,6 +8,7 @@ import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -95,7 +96,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         private long mNow = 0;
         private boolean like = false;
         private int count;
+        Handler clickHandler;
         public ApiResponse apiResponse;
+        GestureDetector gestureDetector;
 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -143,7 +146,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 like = false;
             });
 
-            Handler clickhandler = new Handler() {
+            clickHandler = new Handler() {
                 @Override
                 public void handleMessage(Message msg) {
                     super.handleMessage(msg);
@@ -177,19 +180,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 }
             };
 
-            videoView.setOnClickListener(v -> {
-                Log.d("videoView", "Cliked!");
-                firstPressTime = mNow;
-                mNow = System.currentTimeMillis();
-                if (mNow - firstPressTime < 300){
-                    clickhandler.removeMessages(2);
-                    clickhandler.sendEmptyMessage(1);
-                    mNow = 0;
-                }
-                else
-                    clickhandler.sendEmptyMessageDelayed(2,310);
-            });
-
             // 播放完毕时自动重播
             videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
@@ -199,6 +189,41 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 }
             });
 
+            gestureDetector = new GestureDetector(itemView.getContext(), new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onSingleTapConfirmed(MotionEvent e) {
+                    clickHandler.sendEmptyMessage(2);
+                    Log.d("WhereDoesTheClick?", "single tap");
+                    return true;
+                }
+
+                @Override
+                public boolean onDoubleTap(MotionEvent e) {
+                    clickHandler.removeMessages(2);
+                    clickHandler.sendEmptyMessage(1);
+                    Log.d("WhereDoesTheClick?", "double tap.");
+                    return true;
+                }
+
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return true;
+                }
+            });
+
+            videoView.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    return gestureDetector.onTouchEvent(event);
+                }
+            });
+
+            itemView.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    return gestureDetector.onTouchEvent(event);
+                }
+            });
         }
 
         public void bind(ApiResponse apiResponse) {
