@@ -20,4 +20,17 @@
         android:textStyle="bold"
         android:textSize="20sp"/>
 
+    <ImageView
+        android:id="@+id/play_icon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.6"
+        android:paddingStart="20dp"
+        android:paddingTop="20dp"
+        android:scaleType="center"
+
+        android:scaleX="0.3"
+        android:scaleY="0.3"
+        android:src="@drawable/arrow" />
+
 </FrameLayout>
