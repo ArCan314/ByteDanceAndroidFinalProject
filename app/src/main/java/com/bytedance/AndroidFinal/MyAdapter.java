@@ -60,15 +60,12 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             videoName = itemView.findViewById(R.id.video_name);
             imageView = itemView.findViewById(R.id.avatar_image_view);
             playerIcon = itemView.findViewById(R.id.play_icon);
-            playerIcon.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(context, VideoPlayerActivity.class);
-                    intent.putExtra("url", apiResponse.url);
-                    intent.putExtra("description", apiResponse.description);
-                    intent.putExtra("likecount", apiResponse.likeCount);
-                    context.startActivity(intent);
-                }
+            playerIcon.setOnClickListener(v -> {
+                Intent intent = new Intent(context, VideoPlayerActivity.class);
+                intent.putExtra("url", apiResponse.url);
+                intent.putExtra("description", apiResponse.description);
+                intent.putExtra("likecount", apiResponse.likeCount);
+                context.startActivity(intent);
             });
         }
 
