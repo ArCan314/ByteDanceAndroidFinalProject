@@ -4,10 +4,12 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
@@ -81,7 +83,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         private VideoView videoView;
         private ImageView playIcon;
-        private TextView textView;
+        private TextView description;
+        private TextView author;
         private LottieAnimationView animationView;
         private ImageView beforeLike;
         private ImageView thumbNail;
@@ -97,13 +100,14 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
             videoView = itemView.findViewById(R.id.videoView);
-            textView = itemView.findViewById(R.id.des);
+            description = itemView.findViewById(R.id.des);
+            author = itemView.findViewById(R.id.author);
             playIcon = itemView.findViewById(R.id.play_icon1);
             beforeLike = itemView.findViewById(R.id.beforelike);
             afterLike = itemView.findViewById(R.id.afterlike);
             likeCount = itemView.findViewById(R.id.like_count);
             animationView = itemView.findViewById(R.id.animation_view);
-            thumbNail = itemView.findViewById(R.id.videoViewThumbNail);
+//            thumbNail = itemView.findViewById(R.id.videoViewThumbNail);
 
             ObjectAnimator scaleXAnimator = ObjectAnimator.ofFloat(playIcon,
                     "scaleX", 0.45f, 0.3f);
@@ -185,6 +189,16 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 else
                     clickhandler.sendEmptyMessageDelayed(2,310);
             });
+
+            // 播放完毕时自动重播
+            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mp.start();
+                    mp.setLooping(true);
+                }
+            });
+
         }
 
         public void bind(ApiResponse apiResponse) {
@@ -194,7 +208,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         public void updateData() {
             videoView.setVideoPath(apiResponse.url);
-            textView.setText(apiResponse.description);
+            description.setText(apiResponse.description);
+            author.setText('@' + apiResponse.nickname);
             count = apiResponse.likeCount;
             setLikeCount(count);
             if(progress != -1)
