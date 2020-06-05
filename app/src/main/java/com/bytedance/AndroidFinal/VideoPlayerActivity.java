@@ -243,7 +243,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
-                Toast.makeText(VideoPlayerActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
                 SoftKeyHideShow.hideShowSoftKey(VideoPlayerActivity.this);
             }
         });
@@ -298,16 +297,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     public void addComment() throws ParseException {
         String content = comment_content.getText().toString();
-        
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(CommentContract.CommentEntry.COLUMN_NAME_CONTENT, content);
-        values.put(CommentContract.CommentEntry.COLUMN_NAME_TIME, format.format(new Date(System.currentTimeMillis())));
-        values.put(CommentContract.CommentEntry.COLUMN_NAME_USER, "User");
-        values.put(CommentContract.CommentEntry.COLUMN_NAME_VIEDOID, videoId);
-        db.insert(CommentContract.CommentEntry.TABLE_NAME, null, values);
-        commentAdapter.refresh(loadCommentsFromDatabase(videoId));
-        comment_content.setText("");
+        if(!content.equals("")) {
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            values.put(CommentContract.CommentEntry.COLUMN_NAME_CONTENT, content);
+            values.put(CommentContract.CommentEntry.COLUMN_NAME_TIME, format.format(new Date(System.currentTimeMillis())));
+            values.put(CommentContract.CommentEntry.COLUMN_NAME_USER, "User");
+            values.put(CommentContract.CommentEntry.COLUMN_NAME_VIEDOID, videoId);
+            db.insert(CommentContract.CommentEntry.TABLE_NAME, null, values);
+            commentAdapter.refresh(loadCommentsFromDatabase(videoId));
+            comment_content.setText("");
+            Toast.makeText(VideoPlayerActivity.this, "评论成功", Toast.LENGTH_SHORT).show();
+        }
+        else
+            Toast.makeText(VideoPlayerActivity.this, "评论为空!", Toast.LENGTH_SHORT).show();
     }
 
     public List<Comment> loadCommentsFromDatabase(String videoId) throws ParseException {
@@ -322,8 +325,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 CommentContract.CommentEntry.COLUMN_NAME_CONTENT
         };
 
-        String sortOrder =
-                CommentContract.CommentEntry.COLUMN_NAME_TIME + " DESC";
+        String sortOrder = CommentContract.CommentEntry._ID + " DESC";
 
         String selection = CommentContract.CommentEntry.COLUMN_NAME_VIEDOID + "=?";
         String[] selectionArgs = {videoId};
@@ -354,6 +356,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         String temp = "全部评论(" + cursor.getCount() + ")";
         total_comment.setText(temp);
+        comment_count.setText(String.valueOf(cursor.getCount()));
         cursor.close();
         return result;
     }
