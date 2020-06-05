@@ -2,39 +2,63 @@ package com.bytedance.AndroidFinal;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.BaseColumns;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.VideoView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.widget.ImageViewCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+import com.danikula.videocache.HttpProxyCacheServer;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
+import static com.bytedance.AndroidFinal.Proxy.getProxy;
 
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     private List<ApiResponse> dataSet;
+    public List<MyViewHolder> viewHolderList;
+    public int currentPosition;
     private Context context;
 
     public MyAdapter(Context context) {
         this.context = context;
+        viewHolderList = new ArrayList<>();
     }
 
     @NonNull
@@ -42,18 +66,16 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.my_item, parent, false);
-        return new MyViewHolder(itemView);
+        MyAdapter.MyViewHolder viewHolder = new MyAdapter.MyViewHolder(itemView);
+        viewHolder.context = parent.getContext();
+        return viewHolder;
     }
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
-//        Glide.with(holder.thumbNail.getContext())
-//                .setDefaultRequestOptions(
-//                        new RequestOptions()
-//                                .frame(0))
-//                .load(dataSet.get(position).url)
-//                .into(holder.thumbNail);
         holder.bind(dataSet.get(position));
+        holder.position = position;
+        viewHolderList.set(position, holder);
     }
 
     @Override
@@ -64,10 +86,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     @Override
     public void onViewAttachedToWindow(@NonNull MyViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        if(holder.progress != -1)
+        currentPosition = holder.position;
+        if (holder.progress != -1)
             holder.videoView.seekTo(holder.progress);
         holder.playIcon.setVisibility(View.INVISIBLE);
-        // holder.thumbNail.setVisibility(View.INVISIBLE);
         holder.videoView.start();
     }
 
@@ -75,33 +97,183 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     public void onViewDetachedFromWindow(@NonNull MyViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
         holder.progress = holder.videoView.getCurrentPosition();
-//        holder.thumbNail.setVisibility(View.VISIBLE);
+        if (holder.comment.getVisibility() == View.VISIBLE)
+            holder.comment.setVisibility(View.INVISIBLE);
     }
 
-    public void setDataSet(List<ApiResponse> data) { dataSet = data; }
+
+    public void setDataSet(List<ApiResponse> data) {
+        dataSet = data;
+        viewHolderList.clear();
+        for (int i = 0; i < data.size(); i++) {
+            viewHolderList.add(null);
+        }
+    }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {
+        // Data
+        public ApiResponse apiResponse;
+        public Context context;
+        public int position;
 
+        // Video
         private VideoView videoView;
         private ImageView playIcon;
+        private int progress = -1;
+        private HttpProxyCacheServer proxy;
+
+        // VideoInfo
         private TextView description;
         private TextView author;
-        private LottieAnimationView animationView;
-        private ImageView beforeLike;
-        private ImageView thumbNail;
-        private ImageView afterLike;
+
+        // Like
+        private ImageView beforeLike, afterLike;
         private TextView likeCount;
-        private int progress = -1;
-        private long firstPressTime = 0;
-        private long mNow = 0;
         private boolean like = false;
         private int count;
-        Handler clickHandler;
-        public ApiResponse apiResponse;
+
+        // Comment
+        private ImageView iv_comment;
+        private TextView tv_send, comment_count, total_comment;
+        private LinearLayout close_comment;
+        private RecyclerView recyclerView;
+        private CommentAdapter commentAdapter;
+        private View comment;
+        private EditText comment_content;
+        private CommentDbHelper dbHelper;
+        private final SimpleDateFormat format =
+                new SimpleDateFormat("MM-dd HH:mm", Locale.ENGLISH);
+
+        // Animation and ClickListener
+        private LottieAnimationView animationView;
+        private Handler clickHandler, handler;
         GestureDetector gestureDetector;
 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
+            dbHelper = new CommentDbHelper(itemView.getContext());
+            proxy = getProxy(itemView.getContext());
+            // context = itemView.getContext();
+            getViewsById(itemView);
+            setAnimation(itemView);
+            setAllClickHandler(itemView);
+
+            // 播放完毕时自动重播
+            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mp.start();
+                    mp.setLooping(true);
+                }
+            });
+
+            comment_content.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
+                }
+            });
+
+            videoView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "videoView " + String.valueOf(hasFocus));
+                }
+            });
+
+            playIcon.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "playIcon " + String.valueOf(hasFocus));
+                }
+            });
+
+            animationView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "animationView " + String.valueOf(hasFocus));
+                }
+            });
+
+            likeCount.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "likeCount " + String.valueOf(hasFocus));
+                }
+            });
+
+            afterLike.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "afterLike " + String.valueOf(hasFocus));
+                }
+            });
+
+            beforeLike.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "beforeLike " + String.valueOf(hasFocus));
+                }
+            });
+
+            recyclerView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "recyclerView " + String.valueOf(hasFocus));
+                }
+            });
+
+            comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "comment " + String.valueOf(hasFocus));
+                }
+            });
+
+            tv_send.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "tv_send " + String.valueOf(hasFocus));
+                }
+            });
+
+            close_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "close_comment " + String.valueOf(hasFocus));
+                }
+            });
+
+            iv_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "iv_comment " + String.valueOf(hasFocus));
+                }
+            });
+
+            comment_content.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
+                }
+            });
+
+            comment_count.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "comment_count " + String.valueOf(hasFocus));
+                }
+            });
+
+            total_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                @Override
+                public void onFocusChange(View v, boolean hasFocus) {
+                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
+                }
+            });
+        }
+
+        public void getViewsById(@NonNull View itemView) {
             videoView = itemView.findViewById(R.id.videoView);
             description = itemView.findViewById(R.id.des);
             author = itemView.findViewById(R.id.author);
@@ -110,8 +282,17 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             afterLike = itemView.findViewById(R.id.afterlike);
             likeCount = itemView.findViewById(R.id.like_count);
             animationView = itemView.findViewById(R.id.animation_view);
-//            thumbNail = itemView.findViewById(R.id.videoViewThumbNail);
+            recyclerView = itemView.findViewById(R.id.recycler_comment);
+            comment = itemView.findViewById(R.id.comment);
+            tv_send = itemView.findViewById(R.id.tv_send);
+            close_comment = itemView.findViewById(R.id.close_comment);
+            iv_comment = itemView.findViewById(R.id.iv_comment);
+            comment_content = itemView.findViewById(R.id.comment_content);
+            comment_count = itemView.findViewById(R.id.comment_count);
+            total_comment = itemView.findViewById(R.id.total_comment);
+        }
 
+        public void setAnimation(@NonNull View itemView) {
             ObjectAnimator scaleXAnimator = ObjectAnimator.ofFloat(playIcon,
                     "scaleX", 0.45f, 0.3f);
             scaleXAnimator.setInterpolator(new LinearInterpolator());
@@ -125,13 +306,48 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             AnimatorSet animatorSet = new AnimatorSet();
             animatorSet.playTogether(scaleXAnimator, scaleYAnimator);
 
-            Handler handler = new Handler();
+            handler = new Handler();
             Runnable runnable = () -> {
                 ObjectAnimator animator1 = ObjectAnimator.ofFloat(animationView,
-                        "alpha",1,0);
+                        "alpha", 1, 0);
                 animator1.start();
             };
 
+            clickHandler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+                    super.handleMessage(msg);
+                    switch (msg.what) {
+                        case 1:
+                            ObjectAnimator animator1 = ObjectAnimator.ofFloat(animationView,
+                                    "alpha", 0, 1);
+                            animator1.start();
+                            animationView.playAnimation();
+                            handler.postDelayed(runnable, 2000);
+                            if (!like) {
+                                beforeLike.setVisibility(View.INVISIBLE);
+                                afterLike.setVisibility(View.VISIBLE);
+                                setLikeCount(++count);
+                                like = true;
+                            }
+                            break;
+                        case 2:
+                            if (videoView.isPlaying()) {
+                                videoView.pause();
+                                playIcon.setVisibility(View.VISIBLE);
+                                animatorSet.start();
+                            } else {
+                                videoView.start();
+                                playIcon.setVisibility(View.INVISIBLE);
+                                Log.d("videolog", "resume");
+                            }
+                            break;
+                    }
+                }
+            };
+        }
+
+        public void setAllClickHandler(@NonNull View itemView) {
             beforeLike.setOnClickListener(v -> {
                 beforeLike.setVisibility(View.INVISIBLE);
                 afterLike.setVisibility(View.VISIBLE);
@@ -146,46 +362,29 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 like = false;
             });
 
-            clickHandler = new Handler() {
-                @Override
-                public void handleMessage(Message msg) {
-                    super.handleMessage(msg);
-                    switch (msg.what) {
-                        case 1:
-                            ObjectAnimator animator1 = ObjectAnimator.ofFloat(animationView,
-                                    "alpha",0,1);
-                            animator1.start();
-                            animationView.playAnimation();
-                            handler.postDelayed(runnable, 2000);
-                            if(!like) {
-                                beforeLike.setVisibility(View.INVISIBLE);
-                                afterLike.setVisibility(View.VISIBLE);
-                                setLikeCount(++count);
-                                like = true;
-                            }
-                            break;
-                        case 2:
-                            if(videoView.isPlaying()) {
-                                videoView.pause();
-                                playIcon.setVisibility(View.VISIBLE);
-                                animatorSet.start();
-                            }
-                            else {
-                                videoView.start();
-                                playIcon.setVisibility(View.INVISIBLE);
-                                Log.d("videolog", "resume");
-                            }
-                            break;
-                    }
+            iv_comment.setOnClickListener(v -> {
+                try {
+                    showComment();
+                } catch (ParseException e) {
+                    e.printStackTrace();
                 }
-            };
+            });
 
-            // 播放完毕时自动重播
-            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            close_comment.setOnClickListener(view -> {
+                comment.setVisibility(View.GONE);
+            });
+
+            tv_send.setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onCompletion(MediaPlayer mp) {
-                    mp.start();
-                    mp.setLooping(true);
+                public void onClick(View view) {
+                    try {
+                        addComment();
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    // TODO correct context?
+                    // Toast.makeText(itemView.getContext(), "评论成功", Toast.LENGTH_SHORT).show();
+                    // SoftKeyHideShow.hideShowSoftKey(context);
                 }
             });
 
@@ -228,29 +427,140 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         public void bind(ApiResponse apiResponse) {
             this.apiResponse = apiResponse;
+            // TODO https url
             updateData();
         }
 
         public void updateData() {
-            videoView.setVideoPath(apiResponse.url);
+            String proxyUrl = proxy.getProxyUrl(apiResponse.url);
+            videoView.setVideoPath(proxyUrl);
             description.setText(apiResponse.description);
             author.setText('@' + apiResponse.nickname);
             count = apiResponse.likeCount;
+            setCommentCount();
             setLikeCount(count);
-            if(progress != -1)
+            if (progress != -1)
                 videoView.seekTo(progress);
             // videoView.start();
         }
 
+        public void setCommentCount() {
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+            String[] projection = {
+                    BaseColumns._ID,
+                    CommentContract.CommentEntry.COLUMN_NAME_VIEDOID,
+                    CommentContract.CommentEntry.COLUMN_NAME_TIME,
+                    CommentContract.CommentEntry.COLUMN_NAME_USER,
+                    CommentContract.CommentEntry.COLUMN_NAME_CONTENT
+            };
+
+            String selection = CommentContract.CommentEntry.COLUMN_NAME_VIEDOID + "=?";
+            String[] selectionArgs = {apiResponse.id};
+
+            Cursor cursor = db.query(CommentContract.CommentEntry.TABLE_NAME, projection, selection,
+                    selectionArgs, null, null, null);
+            comment_count.setText(String.valueOf(cursor.getCount()));
+            cursor.close();
+        }
+
         public void setLikeCount(int count) {
-            if(count <= 9999)
-                likeCount.setText(Integer.toString(count));
+            if (count <= 9999)
+                likeCount.setText(String.valueOf(count));
             else {
                 int a = count / 10000;
                 int b = (count % 10000) / 1000;
-                likeCount.setText(a + "." + b + "w");
+                String result = a + "." + b + "w";
+                likeCount.setText(result);
             }
         }
 
+        public void showComment() throws ParseException {
+            if (commentAdapter == null) {
+                commentAdapter = new CommentAdapter();
+                recyclerView.setLayoutManager(new LinearLayoutManager(context));
+                recyclerView.setAdapter(commentAdapter);
+                Log.d("I'm new", "f");
+            }
+
+            commentAdapter.refresh(loadCommentsFromDatabase(apiResponse.id));
+
+            // TODO context right?
+            Animation showAction = AnimationUtils.loadAnimation(context, R.anim.actionsheet_dialog_in);
+            comment.startAnimation(showAction);
+
+            comment.setVisibility(View.VISIBLE);
+        }
+
+        public void addComment() throws ParseException {
+            String content = comment_content.getText().toString();
+            if (!content.equals("")) {
+                SQLiteDatabase db = dbHelper.getWritableDatabase();
+                ContentValues values = new ContentValues();
+                values.put(CommentContract.CommentEntry.COLUMN_NAME_CONTENT, content);
+                values.put(CommentContract.CommentEntry.COLUMN_NAME_TIME, format.format(new Date(System.currentTimeMillis())));
+                values.put(CommentContract.CommentEntry.COLUMN_NAME_USER, "User");
+                values.put(CommentContract.CommentEntry.COLUMN_NAME_VIEDOID, apiResponse.id);
+                db.insert(CommentContract.CommentEntry.TABLE_NAME, null, values);
+                commentAdapter.refresh(loadCommentsFromDatabase(apiResponse.id));
+                comment_content.setText("");
+                // TODO context correct?
+                Toast.makeText(context, "评论成功", Toast.LENGTH_SHORT).show();
+            }
+            else
+                // TODO context correct?
+                Toast.makeText(context, "评论为空!", Toast.LENGTH_SHORT).show();
+        }
+
+        public List<Comment> loadCommentsFromDatabase(String videoId) throws ParseException {
+
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+            String[] projection = {
+                    BaseColumns._ID,
+                    CommentContract.CommentEntry.COLUMN_NAME_VIEDOID,
+                    CommentContract.CommentEntry.COLUMN_NAME_TIME,
+                    CommentContract.CommentEntry.COLUMN_NAME_USER,
+                    CommentContract.CommentEntry.COLUMN_NAME_CONTENT
+            };
+
+            String sortOrder =
+                    CommentContract.CommentEntry._ID + " DESC";
+
+            String selection = CommentContract.CommentEntry.COLUMN_NAME_VIEDOID + "=?";
+            String[] selectionArgs = {videoId};
+
+            Cursor cursor = db.query(
+                    CommentContract.CommentEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    sortOrder
+            );
+
+            List<Comment> result = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                long itemId = cursor.getLong(cursor.getColumnIndexOrThrow(CommentContract.CommentEntry._ID));
+                String tempDate = cursor.getString(cursor.getColumnIndex(CommentContract.CommentEntry.COLUMN_NAME_TIME));
+                Date time = format.parse(tempDate);
+                String content = cursor.getString(cursor.getColumnIndex(CommentContract.CommentEntry.COLUMN_NAME_CONTENT));
+                String user = cursor.getString(cursor.getColumnIndex(CommentContract.CommentEntry.COLUMN_NAME_USER));
+                Comment comment_item = new Comment(itemId);
+                comment_item.setContent(content);
+                comment_item.setTime(time);
+                comment_item.setUser(user);
+                result.add(comment_item);
+            }
+
+            String temp = "全部评论(" + cursor.getCount() + ")";
+            total_comment.setText(temp);
+            comment_count.setText(String.valueOf(cursor.getCount()));
+            cursor.close();
+            return result;
+        }
+
+        public View getComment() { return comment; }
     }
 }

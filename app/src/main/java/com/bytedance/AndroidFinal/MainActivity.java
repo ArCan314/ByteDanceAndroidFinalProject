@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -30,9 +31,10 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        super.onCreate(savedInstanceState);;
         Window window = this.getWindow();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
             window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
             window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -44,6 +46,16 @@ public class MainActivity extends AppCompatActivity {
         myAdapter = new MyAdapter(this);
         viewPager2.setAdapter(myAdapter);
         getData();
+    }
+
+    @Override
+    public void onBackPressed() {
+        View comment = myAdapter.viewHolderList.get(myAdapter.currentPosition).getComment();
+        if (comment.getVisibility() == View.VISIBLE) {
+            comment.setVisibility(View.INVISIBLE);
+        }
+        else
+            super.onBackPressed();
     }
 
     private void getData() {
