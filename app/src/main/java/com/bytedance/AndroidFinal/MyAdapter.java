@@ -49,7 +49,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
     public void setDataSet(List<ApiResponse> data) { dataSet = data; }
 
-    public  class MyViewHolder extends  RecyclerView.ViewHolder {
+    public class MyViewHolder extends  RecyclerView.ViewHolder {
 
         public TextView videoName;
         public ImageView imageView;
@@ -62,9 +62,12 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             playerIcon = itemView.findViewById(R.id.play_icon);
             playerIcon.setOnClickListener(v -> {
                 Intent intent = new Intent(context, VideoPlayerActivity.class);
-                intent.putExtra("url", apiResponse.url);
+                StringBuilder stringBuilder = new StringBuilder(apiResponse.url);
+                stringBuilder.insert(4,"s");
+                intent.putExtra("url", stringBuilder.toString());
                 intent.putExtra("description", apiResponse.description);
                 intent.putExtra("likecount", apiResponse.likeCount);
+                intent.putExtra("videoid", apiResponse.id);
                 context.startActivity(intent);
             });
         }
