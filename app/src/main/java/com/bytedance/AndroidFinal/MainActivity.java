@@ -43,16 +43,17 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         viewPager2 = findViewById(R.id.video_info_viewpager2);
-        myAdapter = new MyAdapter(this);
+        myAdapter = new MyAdapter(this, viewPager2);
         viewPager2.setAdapter(myAdapter);
         getData();
     }
 
     @Override
     public void onBackPressed() {
-        View comment = myAdapter.viewHolderList.get(myAdapter.currentPosition).getComment();
+        MyAdapter.MyViewHolder viewHolder = myAdapter.viewHolderList.get(myAdapter.currentPosition);
+        View comment = viewHolder.getComment();
         if (comment.getVisibility() == View.VISIBLE) {
-            comment.setVisibility(View.INVISIBLE);
+            viewHolder.close_comment.performClick();
         }
         else
             super.onBackPressed();

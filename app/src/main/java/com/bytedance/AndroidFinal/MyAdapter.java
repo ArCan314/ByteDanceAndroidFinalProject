@@ -17,6 +17,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
@@ -35,11 +36,17 @@ import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.widget.ImageViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.danikula.videocache.HttpProxyCacheServer;
+import com.lxj.xpopup.XPopup;
+import com.lxj.xpopup.impl.InputConfirmPopupView;
+import com.lxj.xpopup.interfaces.OnConfirmListener;
+import com.lxj.xpopup.interfaces.OnInputConfirmListener;
+import com.lxj.xpopup.interfaces.SimpleCallback;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -55,10 +62,13 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     public List<MyViewHolder> viewHolderList;
     public int currentPosition;
     private Context context;
+    private ViewPager2 viewPager;
+    private int currectCommentPosition = -1;
 
-    public MyAdapter(Context context) {
+    public MyAdapter(Context context, ViewPager2 viewPager) {
         this.context = context;
         viewHolderList = new ArrayList<>();
+        this.viewPager = viewPager;
     }
 
     @NonNull
@@ -85,18 +95,25 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
     @Override
     public void onViewAttachedToWindow(@NonNull MyViewHolder holder) {
-        super.onViewAttachedToWindow(holder);
-        currentPosition = holder.position;
-        if (holder.progress != -1)
-            holder.videoView.seekTo(holder.progress);
-        holder.playIcon.setVisibility(View.INVISIBLE);
-        holder.videoView.start();
+            super.onViewAttachedToWindow(holder);
+            currentPosition = holder.position;
+            Log.d("Focus", "Attached " + holder.position);
+            if (holder.progress != -1)
+                holder.videoView.seekTo(holder.progress);
+            holder.playIcon.setVisibility(View.INVISIBLE);
+            holder.videoView.post(new Runnable() {
+                @Override
+                public void run() {
+                    holder.videoView.start();
+                }
+            });
     }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull MyViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
         holder.progress = holder.videoView.getCurrentPosition();
+        Log.d("Focus", "Detached " + holder.position);
         if (holder.comment.getVisibility() == View.VISIBLE)
             holder.comment.setVisibility(View.INVISIBLE);
     }
@@ -117,7 +134,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         public int position;
 
         // Video
-        private VideoView videoView;
+        public VideoView videoView;
         private ImageView playIcon;
         private int progress = -1;
         private HttpProxyCacheServer proxy;
@@ -135,7 +152,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         // Comment
         private ImageView iv_comment;
         private TextView tv_send, comment_count, total_comment;
-        private LinearLayout close_comment;
+        public LinearLayout close_comment;
         private RecyclerView recyclerView;
         private CommentAdapter commentAdapter;
         private View comment;
@@ -147,7 +164,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         // Animation and ClickListener
         private LottieAnimationView animationView;
         private Handler clickHandler, handler;
-        GestureDetector gestureDetector;
+        private GestureDetector gestureDetector;
+
+        public Boolean isVideoPausedBeforeEnterComment = false;
+        public Boolean isInComment = false;
 
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -167,108 +187,40 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 }
             });
 
+            videoView.getHolder().addCallback(new SurfaceHolder.Callback() {
+                @Override
+                public void surfaceCreated(SurfaceHolder holder) {
+                    Log.d("VideoView", "surfaceCreate " + position);
+                }
+
+                @Override
+                public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                    Log.d("VideoView", "surfaceChanged " + position);
+                }
+
+                @Override
+                public void surfaceDestroyed(SurfaceHolder holder) {
+                    Log.d("VideoView", "surfaceDestroyed " + position);
+                }
+            });
+
             comment_content.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
+//                    v.postOnAnimationDelayed(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            v.requestFocus();
+//                        }
+//                    },10);
+                    Log.d("WhereDoesFocusGo?", "comment_content " + position + " " + String.valueOf(hasFocus));
                 }
             });
 
             videoView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "videoView " + String.valueOf(hasFocus));
-                }
-            });
-
-            playIcon.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "playIcon " + String.valueOf(hasFocus));
-                }
-            });
-
-            animationView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "animationView " + String.valueOf(hasFocus));
-                }
-            });
-
-            likeCount.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "likeCount " + String.valueOf(hasFocus));
-                }
-            });
-
-            afterLike.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "afterLike " + String.valueOf(hasFocus));
-                }
-            });
-
-            beforeLike.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "beforeLike " + String.valueOf(hasFocus));
-                }
-            });
-
-            recyclerView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "recyclerView " + String.valueOf(hasFocus));
-                }
-            });
-
-            comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "comment " + String.valueOf(hasFocus));
-                }
-            });
-
-            tv_send.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "tv_send " + String.valueOf(hasFocus));
-                }
-            });
-
-            close_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "close_comment " + String.valueOf(hasFocus));
-                }
-            });
-
-            iv_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "iv_comment " + String.valueOf(hasFocus));
-                }
-            });
-
-            comment_content.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
-                }
-            });
-
-            comment_count.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "comment_count " + String.valueOf(hasFocus));
-                }
-            });
-
-            total_comment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    Log.d("WhereDoesFocusGo?", "comment_content " + String.valueOf(hasFocus));
+                    Log.d("WhereDoesFocusGo?", "videoView " + position + " " + String.valueOf(hasFocus));
                 }
             });
         }
@@ -317,6 +269,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 @Override
                 public void handleMessage(Message msg) {
                     super.handleMessage(msg);
+                    if (isInComment)
+                        return;
                     switch (msg.what) {
                         case 1:
                             ObjectAnimator animator1 = ObjectAnimator.ofFloat(animationView,
@@ -365,6 +319,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
             iv_comment.setOnClickListener(v -> {
                 try {
                     showComment();
+                    viewPager.setUserInputEnabled(false);
+                    isVideoPausedBeforeEnterComment = !videoView.isPlaying();
+                    isInComment = true;
+                    if (!isVideoPausedBeforeEnterComment)
+                        videoView.pause();
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -372,6 +331,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
             close_comment.setOnClickListener(view -> {
                 comment.setVisibility(View.GONE);
+                viewPager.setUserInputEnabled(true);
+                isInComment = false;
+                if (!isVideoPausedBeforeEnterComment)
+                    videoView.start();
             });
 
             tv_send.setOnClickListener(new View.OnClickListener() {
@@ -382,9 +345,35 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-                    // TODO correct context?
-                    // Toast.makeText(itemView.getContext(), "评论成功", Toast.LENGTH_SHORT).show();
+
+
                     // SoftKeyHideShow.hideShowSoftKey(context);
+                }
+            });
+
+            comment_content.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    CommentPopup commentPopup = new CommentPopup(context);
+
+                    new XPopup.Builder(context)
+                            .autoOpenSoftInput(true)
+                            .setPopupCallback(new SimpleCallback() {
+                                @Override
+                                public void onCreated() {
+                                    commentPopup.setContent(comment_content.getText().toString());
+                                }
+
+                                @Override
+                                public void onDismiss() {
+                                    comment_content.setText(commentPopup.getContent());
+                                    if (commentPopup.confirmClicked) {
+                                        tv_send.performClick();
+                                    }
+                                }
+                            })
+                            .asCustom(commentPopup)
+                            .show();
                 }
             });
 
@@ -427,7 +416,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         public void bind(ApiResponse apiResponse) {
             this.apiResponse = apiResponse;
-            // TODO https url
+            StringBuilder stringBuilder = new StringBuilder(apiResponse.url);
+            stringBuilder.insert(4, 's');
+            this.apiResponse.url = stringBuilder.toString();
             updateData();
         }
 
@@ -485,7 +476,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
             commentAdapter.refresh(loadCommentsFromDatabase(apiResponse.id));
 
-            // TODO context right?
             Animation showAction = AnimationUtils.loadAnimation(context, R.anim.actionsheet_dialog_in);
             comment.startAnimation(showAction);
 
@@ -504,11 +494,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 db.insert(CommentContract.CommentEntry.TABLE_NAME, null, values);
                 commentAdapter.refresh(loadCommentsFromDatabase(apiResponse.id));
                 comment_content.setText("");
-                // TODO context correct?
                 Toast.makeText(context, "评论成功", Toast.LENGTH_SHORT).show();
             }
             else
-                // TODO context correct?
                 Toast.makeText(context, "评论为空!", Toast.LENGTH_SHORT).show();
         }
 
