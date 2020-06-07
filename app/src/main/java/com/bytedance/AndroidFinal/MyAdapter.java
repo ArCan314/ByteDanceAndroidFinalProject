@@ -416,9 +416,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
 
         public void bind(ApiResponse apiResponse) {
             this.apiResponse = apiResponse;
-            StringBuilder stringBuilder = new StringBuilder(apiResponse.url);
-            stringBuilder.insert(4, 's');
-            this.apiResponse.url = stringBuilder.toString();
+            if (!apiResponse.url.startsWith("https")) {
+                StringBuilder stringBuilder = new StringBuilder(apiResponse.url);
+                stringBuilder.insert(4, 's');
+                this.apiResponse.url = stringBuilder.toString();
+            }
             updateData();
         }
 
