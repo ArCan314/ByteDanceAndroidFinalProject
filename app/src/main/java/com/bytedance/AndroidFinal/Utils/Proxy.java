@@ -1,4 +1,4 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Utils;
 
 import android.app.Application;
 import android.content.Context;

@@ -49,12 +49,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import static com.bytedance.AndroidFinal.Proxy.getProxy;
+import static com.bytedance.AndroidFinal.Utils.Proxy.getProxy;
 
 public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHolder> {
     private List<ApiResponse> dataSet;
     public List<VideoViewHolder> viewHolderList;
     public List<Boolean> attachedHolders;
+    public Boolean isClickAllowed = true;
     private Context context;
     private ViewPager2 viewPager;
 
@@ -330,6 +331,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
 
         public void setAllClickHandler(@NonNull View itemView) {
             beforeLike.setOnClickListener(v -> {
+                if (!isClickAllowed)
+                    return;
                 beforeLike.setVisibility(View.INVISIBLE);
                 afterLike.setVisibility(View.VISIBLE);
                 setLikeCount(++count);
@@ -337,6 +340,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             });
 
             afterLike.setOnClickListener(v -> {
+                if (!isClickAllowed)
+                    return;
                 afterLike.setVisibility(View.INVISIBLE);
                 beforeLike.setVisibility(View.VISIBLE);
                 setLikeCount(--count);
@@ -344,6 +349,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             });
 
             iv_comment.setOnClickListener(v -> {
+                if (!isClickAllowed)
+                    return;
                 try {
                     showComment();
                     viewPager.setUserInputEnabled(false);
@@ -357,6 +364,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             });
 
             close_comment.setOnClickListener(view -> {
+                if (!isClickAllowed)
+                    return;
                 comment.setVisibility(View.GONE);
                 viewPager.setUserInputEnabled(true);
                 isInComment = false;
@@ -367,6 +376,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             tv_send.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    if (!isClickAllowed)
+                        return;
                     try {
                         addComment();
                     } catch (ParseException e) {
@@ -381,6 +392,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             comment_content.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (!isClickAllowed)
+                        return;
                     CommentPopup commentPopup = new CommentPopup(context);
 
                     new XPopup.Builder(context)
@@ -429,6 +442,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             videoView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
+                    if (!isClickAllowed)
+                        return true;
                     return gestureDetector.onTouchEvent(event);
                 }
             });
@@ -436,6 +451,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             itemView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
+                    if (!isClickAllowed)
+                        return true;
                     return gestureDetector.onTouchEvent(event);
                 }
             });

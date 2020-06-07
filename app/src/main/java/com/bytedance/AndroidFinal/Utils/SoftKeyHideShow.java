@@ -1,4 +1,4 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Utils;
 
 import android.content.Context;
 import android.view.inputmethod.InputMethodManager;

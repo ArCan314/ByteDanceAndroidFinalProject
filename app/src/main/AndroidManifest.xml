@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:name="com.bytedance.AndroidFinal.Proxy"
+        android:name="com.bytedance.AndroidFinal.Utils.Proxy"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -21,6 +21,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".Message.ChatRoom"/>
     </application>
 
 </manifest>
