@@ -63,7 +63,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     public int currentPosition;
     private Context context;
     private ViewPager2 viewPager;
-    private int currectCommentPosition = -1;
 
     public MyAdapter(Context context, ViewPager2 viewPager) {
         this.context = context;
@@ -125,6 +124,20 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         for (int i = 0; i < data.size(); i++) {
             viewHolderList.add(null);
         }
+    }
+
+    private Boolean isInComment = false;
+    private Boolean isVideoStarted = false;
+    public void save() {
+        isInComment = viewHolderList.get(currentPosition).isInComment;
+        isVideoStarted = viewHolderList.get(currentPosition).videoView.isPlaying();
+        if (!isInComment && isVideoStarted)
+            viewHolderList.get(currentPosition).videoView.pause();
+    }
+
+    public void restore() {
+        if (isVideoStarted)
+            viewHolderList.get(currentPosition).videoView.start();
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder {

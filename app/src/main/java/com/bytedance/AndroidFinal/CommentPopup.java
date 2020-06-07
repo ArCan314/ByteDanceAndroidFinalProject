@@ -7,9 +7,10 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.lxj.xpopup.core.BottomPopupView;
 import com.lxj.xpopup.core.CenterPopupView;
 
-public class CommentPopup extends CenterPopupView {
+public class CommentPopup extends BottomPopupView {
 
     public CommentPopup(@NonNull Context context) {
         super(context);
