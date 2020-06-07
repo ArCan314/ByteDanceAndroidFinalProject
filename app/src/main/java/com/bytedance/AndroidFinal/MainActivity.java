@@ -1,21 +1,17 @@
 package com.bytedance.AndroidFinal;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.LinearLayout;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -30,8 +26,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MainActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager2;
-    private MyAdapter myAdapter;
+    private VideoAdapter videoAdapter;
     private BottomNavigationView bnvMenu;
+    private LinearLayout messageLayout;
+    private int currentSelectedItemId = -1;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -48,31 +46,38 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         viewPager2 = findViewById(R.id.video_info_viewpager2);
-        myAdapter = new MyAdapter(this, viewPager2);
-        viewPager2.setAdapter(myAdapter);
-        bnvMenu = findViewById(R.id.bnv_bottom_select);
-        bnvMenu.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+        videoAdapter = new VideoAdapter(this, viewPager2);
+        viewPager2.setAdapter(videoAdapter);
+        viewPager2.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.main_page:
-
-                        myAdapter.restore();
-                        break;
-                    case R.id.message_page:
-                        myAdapter.save();
-                        break;
-                    default:
-                        return false;
-                }
+            public void onClick(View v) {
+                Log.d("test", "Test");
             }
         });
+        bnvMenu = findViewById(R.id.bnv_bottom_select);
+        bnvMenu.setOnNavigationItemSelectedListener(item -> {
+            if (currentSelectedItemId == item.getItemId())
+                return false;
+            currentSelectedItemId = item.getItemId();
+            switch (item.getItemId()) {
+                case R.id.main_page:
+                    videoAdapter.restore();
+                    return true;
+                case R.id.message_page:
+                    videoAdapter.save();
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        });
+
         getData();
     }
 
     @Override
     public void onBackPressed() {
-        MyAdapter.MyViewHolder viewHolder = myAdapter.viewHolderList.get(myAdapter.currentPosition);
+        VideoAdapter.VideoViewHolder viewHolder = videoAdapter.viewHolderList.get(videoAdapter.getCurrentPos());
         View comment = viewHolder.getComment();
         if (comment.getVisibility() == View.VISIBLE) {
             viewHolder.close_comment.performClick();
@@ -94,8 +99,8 @@ public class MainActivity extends AppCompatActivity {
                 if (response.body() != null) {
                     List<ApiResponse> apiResponses = response.body();
                     Log.d("retrofit", apiResponses.toString());
-                    myAdapter.setDataSet(response.body());
-                    myAdapter.notifyDataSetChanged();
+                    videoAdapter.setDataSet(response.body());
+                    videoAdapter.notifyDataSetChanged();
                 }
             }
 

@@ -2,10 +2,8 @@ package com.bytedance.AndroidFinal;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
@@ -14,7 +12,6 @@ import android.os.Message;
 import android.provider.BaseColumns;
 import android.util.Log;
 import android.view.GestureDetector;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -30,22 +27,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.AppCompatImageView;
-import androidx.core.widget.ImageViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.airbnb.lottie.LottieAnimationView;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.RequestOptions;
+import com.bytedance.AndroidFinal.Comment.Comment;
+import com.bytedance.AndroidFinal.Comment.CommentAdapter;
+import com.bytedance.AndroidFinal.Comment.CommentContract;
+import com.bytedance.AndroidFinal.Comment.CommentDbHelper;
+import com.bytedance.AndroidFinal.Comment.CommentPopup;
 import com.danikula.videocache.HttpProxyCacheServer;
 import com.lxj.xpopup.XPopup;
-import com.lxj.xpopup.impl.InputConfirmPopupView;
-import com.lxj.xpopup.interfaces.OnConfirmListener;
-import com.lxj.xpopup.interfaces.OnInputConfirmListener;
 import com.lxj.xpopup.interfaces.SimpleCallback;
 
 import java.text.ParseException;
@@ -57,31 +51,32 @@ import java.util.Locale;
 
 import static com.bytedance.AndroidFinal.Proxy.getProxy;
 
-public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
+public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHolder> {
     private List<ApiResponse> dataSet;
-    public List<MyViewHolder> viewHolderList;
-    public int currentPosition;
+    public List<VideoViewHolder> viewHolderList;
+    public List<Boolean> attachedHolders;
     private Context context;
     private ViewPager2 viewPager;
 
-    public MyAdapter(Context context, ViewPager2 viewPager) {
+    public VideoAdapter(Context context, ViewPager2 viewPager) {
         this.context = context;
         viewHolderList = new ArrayList<>();
+        attachedHolders = new ArrayList<>();
         this.viewPager = viewPager;
     }
 
     @NonNull
     @Override
-    public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public VideoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View itemView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.my_item, parent, false);
-        MyAdapter.MyViewHolder viewHolder = new MyAdapter.MyViewHolder(itemView);
+        VideoViewHolder viewHolder = new VideoViewHolder(itemView);
         viewHolder.context = parent.getContext();
         return viewHolder;
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull VideoViewHolder holder, int position) {
         holder.bind(dataSet.get(position));
         holder.position = position;
         viewHolderList.set(position, holder);
@@ -93,10 +88,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     }
 
     @Override
-    public void onViewAttachedToWindow(@NonNull MyViewHolder holder) {
+    public void onViewAttachedToWindow(@NonNull VideoViewHolder holder) {
             super.onViewAttachedToWindow(holder);
-            currentPosition = holder.position;
             Log.d("Focus", "Attached " + holder.position);
+            attachedHolders.set(holder.position, true);
             if (holder.progress != -1)
                 holder.videoView.seekTo(holder.progress);
             holder.playIcon.setVisibility(View.INVISIBLE);
@@ -109,8 +104,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull MyViewHolder holder) {
+    public void onViewDetachedFromWindow(@NonNull VideoViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
+        attachedHolders.set(holder.position, false);
         holder.progress = holder.videoView.getCurrentPosition();
         Log.d("Focus", "Detached " + holder.position);
         if (holder.comment.getVisibility() == View.VISIBLE)
@@ -121,26 +117,44 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
     public void setDataSet(List<ApiResponse> data) {
         dataSet = data;
         viewHolderList.clear();
+        attachedHolders.clear();
         for (int i = 0; i < data.size(); i++) {
             viewHolderList.add(null);
+            attachedHolders.add(false);
         }
+    }
+
+    public int getCurrentPos() {
+        int res = -1;
+        for (int i = 0; i < attachedHolders.size(); i++)
+            if (attachedHolders.get(i)) {
+                res = i;
+                break;
+            }
+        return res;
     }
 
     private Boolean isInComment = false;
     private Boolean isVideoStarted = false;
     public void save() {
-        isInComment = viewHolderList.get(currentPosition).isInComment;
-        isVideoStarted = viewHolderList.get(currentPosition).videoView.isPlaying();
-        if (!isInComment && isVideoStarted)
-            viewHolderList.get(currentPosition).videoView.pause();
+        int currentPos = getCurrentPos();
+        isInComment = viewHolderList.get(currentPos).isInComment;
+        isVideoStarted = viewHolderList.get(currentPos).videoView.isPlaying();
+        if (!isInComment && isVideoStarted) {
+            viewHolderList.get(currentPos).videoView.pause();
+            viewHolderList.get(currentPos).playIcon.setVisibility(View.VISIBLE);
+        }
     }
 
     public void restore() {
-        if (isVideoStarted)
-            viewHolderList.get(currentPosition).videoView.start();
+        if (!isInComment && isVideoStarted) {
+            viewHolderList.get(getCurrentPos()).videoView.start();
+            viewHolderList.get(getCurrentPos()).playIcon.setVisibility(View.INVISIBLE);
+        }
+
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder {
+    public class VideoViewHolder extends RecyclerView.ViewHolder {
         // Data
         public ApiResponse apiResponse;
         public Context context;
@@ -182,7 +196,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         public Boolean isVideoPausedBeforeEnterComment = false;
         public Boolean isInComment = false;
 
-        public MyViewHolder(@NonNull View itemView) {
+        public VideoViewHolder(@NonNull View itemView) {
             super(itemView);
             dbHelper = new CommentDbHelper(itemView.getContext());
             proxy = getProxy(itemView.getContext());

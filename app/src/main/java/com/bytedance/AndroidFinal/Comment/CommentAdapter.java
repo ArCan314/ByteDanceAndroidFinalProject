@@ -1,6 +1,5 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Comment;
 
-import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +8,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bytedance.AndroidFinal.R;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

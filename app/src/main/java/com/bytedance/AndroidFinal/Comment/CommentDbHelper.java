@@ -1,11 +1,11 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Comment;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import static com.bytedance.AndroidFinal.CommentContract.SQL_CREATE_ENTRIES;
-import static com.bytedance.AndroidFinal.CommentContract.SQL_DELETE_ENTRIES;
+import static com.bytedance.AndroidFinal.Comment.CommentContract.SQL_CREATE_ENTRIES;
+import static com.bytedance.AndroidFinal.Comment.CommentContract.SQL_DELETE_ENTRIES;
 
 public class CommentDbHelper extends SQLiteOpenHelper {
 

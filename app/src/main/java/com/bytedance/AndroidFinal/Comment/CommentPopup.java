@@ -1,4 +1,4 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Comment;
 
 import android.content.Context;
 import android.view.View;
@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.bytedance.AndroidFinal.R;
 import com.lxj.xpopup.core.BottomPopupView;
 import com.lxj.xpopup.core.CenterPopupView;
 

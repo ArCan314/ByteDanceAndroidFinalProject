@@ -1,4 +1,4 @@
-package com.bytedance.AndroidFinal;
+package com.bytedance.AndroidFinal.Comment;
 
 import java.util.Date;
 
