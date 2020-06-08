@@ -4,9 +4,11 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.BaseColumns;
@@ -59,10 +61,12 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
     public List<Boolean> attachedHolders;
     public Boolean isClickAllowed = true;
     private CommentClickListener listener;
+    private Context context;
     private ViewPager2 viewPager;
 
-    public VideoAdapter(CommentClickListener listener, ViewPager2 viewPager) {
-        this.listener = listener;
+    public VideoAdapter(Context listener, ViewPager2 viewPager) {
+        this.listener = (CommentClickListener) listener;
+        context = listener;
         viewHolderList = new ArrayList<>();
         attachedHolders = new ArrayList<>();
         this.viewPager = viewPager;
@@ -201,7 +205,9 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
         private final SimpleDateFormat format =
                 new SimpleDateFormat("MM-dd HH:mm", Locale.ENGLISH);
 
+        //Share
         private ImageView iv_share;
+        private TextView shareCount;
 
         // Animation and ClickListener
         private LottieAnimationView animationView;
@@ -299,6 +305,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             comment_count = itemView.findViewById(R.id.comment_count);
             total_comment = itemView.findViewById(R.id.total_comment);
             iv_share = itemView.findViewById(R.id.iv_share);
+            shareCount = itemView.findViewById(R.id.share_count);
         }
 
         public void setAnimation(@NonNull View itemView) {
@@ -490,7 +497,12 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             iv_share.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
+                    Intent intent = new Intent(Intent.ACTION_SEND);
+                    intent.setType("text/plain");
+                    intent.putExtra(Intent.EXTRA_TEXT, apiResponse.url);
+                    context.startActivity(Intent.createChooser(intent, "分享"));
+                    int result = Integer.parseInt((String) shareCount.getText())+1;
+                    shareCount.setText(String.valueOf(result));
                 }
             });
         }
