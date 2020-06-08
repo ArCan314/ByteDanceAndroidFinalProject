@@ -21,7 +21,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Message.ChatRoom"/>
+        <activity android:name=".Message.ChatRoom" android:theme="@style/mytheme"/>
     </application>
 
 </manifest>

@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
@@ -47,12 +48,8 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);;
         Window window = this.getWindow();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(Color.TRANSPARENT);
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         setContentView(R.layout.activity_main);
         rvMessage = findViewById(R.id.message_list);
@@ -78,11 +75,17 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
                     viewPager2.setUserInputEnabled(true);
                     videoAdapter.isClickAllowed = true;
                     messageLayout.setVisibility(View.INVISIBLE);
+                    bnvMenu.setBackgroundColor(Color.TRANSPARENT);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
                     return true;
                 case R.id.message_page:
                     videoAdapter.save();
                     viewPager2.setUserInputEnabled(false);
                     videoAdapter.isClickAllowed = false;
+                    bnvMenu.setBackgroundColor(Color.BLACK);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
                     showMessage();
                     return true;
                 default:
@@ -149,7 +152,10 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
     @Override
     public void onListItemClick(int clickedItemIndex) {
         Intent intent = new Intent(this, ChatRoom.class);
-        intent.putExtra(ChatRoom.CLICK_POS_KEY, clickedItemIndex);
+        Bundle bundle = new Bundle();
+        bundle.putInt("id", clickedItemIndex);
+        bundle.putString("title", messages.get(clickedItemIndex).getTitle());
+        intent.putExtra("data", bundle);
         startActivity(intent);
     }
 }

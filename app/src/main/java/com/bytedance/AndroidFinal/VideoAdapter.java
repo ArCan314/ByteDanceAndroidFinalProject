@@ -39,6 +39,7 @@ import com.bytedance.AndroidFinal.Comment.CommentContract;
 import com.bytedance.AndroidFinal.Comment.CommentDbHelper;
 import com.bytedance.AndroidFinal.Comment.CommentPopup;
 import com.danikula.videocache.HttpProxyCacheServer;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.interfaces.SimpleCallback;
 
@@ -196,6 +197,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
 
         public Boolean isVideoPausedBeforeEnterComment = false;
         public Boolean isInComment = false;
+
+        private BottomNavigationView bnvMenu;
 
         public VideoViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -524,7 +527,6 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
 
             Animation showAction = AnimationUtils.loadAnimation(context, R.anim.actionsheet_dialog_in);
             comment.startAnimation(showAction);
-
             comment.setVisibility(View.VISIBLE);
         }
 

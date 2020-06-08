@@ -12,6 +12,20 @@
         android:layout_height="45dp"
         android:background="#161823">
 
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="13dp"
+            android:layout_marginLeft="13dp"
+            android:layout_marginTop="13dp"
+            android:layout_marginEnd="13dp"
+            android:layout_marginRight="13dp"
+            android:layout_marginBottom="13dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/back_button" />
+
         <TextView
             android:id="@+id/tv_with_name"
             android:layout_width="wrap_content"
@@ -20,25 +34,29 @@
             android:fontFamily="monospace"
             android:textColor="#ffffff"
             android:textSize="18sp"
-            tools:text="消息" />
+            android:text="消息" />
+
+
+
+
     </RelativeLayout>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_above="@id/edit_send_content"
         android:layout_below="@id/header">
 
         <TextView
-            android:padding="16dp"
             android:id="@+id/tv_content_info"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:fontFamily="casual"
+            android:padding="16dp"
+
             android:textColor="#ffffff"
             android:textSize="14sp"
-            android:textStyle="normal"
-            tools:text="skdjskdjskdjskdjskdjs" />
+            android:textStyle="normal" />
 
     </ScrollView>
 

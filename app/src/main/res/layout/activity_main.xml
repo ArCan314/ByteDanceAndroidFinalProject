@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,36 +10,28 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/video_info_viewpager2"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/bnv_bottom_select"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="match_parent"
         android:background="@android:color/background_dark"
         android:orientation="vertical"/>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bnv_bottom_select"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:background="@android:color/background_dark"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="32dp"
+        android:layout_gravity="bottom"
+        android:background="@android:color/transparent"
         app:itemTextColor="@android:color/white"
+        app:itemIconSize="0dp"
         app:labelVisibilityMode="auto"
         app:menu="@menu/bottom_navigation_menu" />
 
     <LinearLayout
         android:id="@+id/message_layout"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/bnv_bottom_select"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="match_parent"
         android:background="@android:color/background_dark"
         android:orientation="vertical"
+        android:layout_gravity="top"
         android:visibility="gone">
         <RelativeLayout
             android:id="@+id/header"
@@ -51,7 +43,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:text="Message"
+                android:text="消息"
                 android:textSize="20sp"
                 android:fontFamily="monospace"
                 android:textColor="@android:color/white"/>
@@ -67,4 +59,4 @@
     </LinearLayout>
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

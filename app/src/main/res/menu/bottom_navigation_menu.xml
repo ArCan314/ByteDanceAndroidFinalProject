@@ -4,7 +4,8 @@
         android:id="@+id/main_page"
         android:enabled="true"
         android:title="@string/main_page"
-        android:icon="@android:color/transparent" />
+        android:icon="@android:color/transparent"
+        />
     <item
         android:id="@+id/message_page"
         android:enabled="true"
