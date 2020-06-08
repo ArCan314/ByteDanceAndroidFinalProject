@@ -1,0 +1,490 @@
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+index 7bfef59..b9e49da 100644
+--- a/.idea/misc.xml
++++ b/.idea/misc.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="1.8" project-jdk-type="JavaSDK">
++  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="11" project-jdk-type="JavaSDK">
+     <output url="file://$PROJECT_DIR$/build/classes" />
+   </component>
+   <component name="ProjectType">
+diff --git a/app/build.gradle b/app/build.gradle
+index 3b43082..da53ad3 100644
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -7,7 +7,7 @@ android {
+     defaultConfig {
+         applicationId "com.bytedance.AndroidFinal"
+         minSdkVersion 21
+-        targetSdkVersion 27
++        targetSdkVersion 28
+         versionCode 1
+         versionName "1.0"
+ 
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 08f2db0..ee568f2 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -21,7 +21,7 @@
+                 <category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
+         </activity>
+-        <activity android:name=".Message.ChatRoom"/>
++        <activity android:name=".Message.ChatRoom" android:theme="@style/mytheme"/>
+     </application>
+ 
+ </manifest>
+\ No newline at end of file
+diff --git a/app/src/main/java/com/bytedance/AndroidFinal/MainActivity.java b/app/src/main/java/com/bytedance/AndroidFinal/MainActivity.java
+index e178a17..7c3cd25 100644
+--- a/app/src/main/java/com/bytedance/AndroidFinal/MainActivity.java
++++ b/app/src/main/java/com/bytedance/AndroidFinal/MainActivity.java
+@@ -6,12 +6,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
+ import androidx.recyclerview.widget.RecyclerView;
+ import androidx.viewpager2.widget.ViewPager2;
+ 
++import android.content.Context;
+ import android.content.Intent;
+ import android.graphics.Color;
+ import android.os.Build;
+ import android.os.Bundle;
+ import android.util.Log;
+ import android.view.View;
++import android.view.ViewGroup;
+ import android.view.Window;
+ import android.view.WindowManager;
+ import android.widget.LinearLayout;
+@@ -32,7 +34,7 @@ import retrofit2.Response;
+ import retrofit2.Retrofit;
+ import retrofit2.converter.gson.GsonConverterFactory;
+ 
+-public class MainActivity extends AppCompatActivity implements MessageAdapter.ListItemClickListener {
++public class MainActivity extends AppCompatActivity implements MessageAdapter.ListItemClickListener, VideoAdapter.CommentClickListener {
+ 
+     private ViewPager2 viewPager2;
+     private VideoAdapter videoAdapter;
+@@ -47,12 +49,8 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);;
+         Window window = this.getWindow();
+-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+-            window.setStatusBarColor(Color.TRANSPARENT);
+-        }
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
++            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+ 
+         setContentView(R.layout.activity_main);
+         rvMessage = findViewById(R.id.message_list);
+@@ -78,11 +76,17 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
+                     viewPager2.setUserInputEnabled(true);
+                     videoAdapter.isClickAllowed = true;
+                     messageLayout.setVisibility(View.INVISIBLE);
++                    bnvMenu.setBackgroundColor(Color.TRANSPARENT);
++                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
++                        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                     return true;
+                 case R.id.message_page:
+                     videoAdapter.save();
+                     viewPager2.setUserInputEnabled(false);
+                     videoAdapter.isClickAllowed = false;
++                    bnvMenu.setBackgroundColor(Color.BLACK);
++                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
++                        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                     showMessage();
+                     return true;
+                 default:
+@@ -149,7 +153,18 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
+     @Override
+     public void onListItemClick(int clickedItemIndex) {
+         Intent intent = new Intent(this, ChatRoom.class);
+-        intent.putExtra(ChatRoom.CLICK_POS_KEY, clickedItemIndex);
++        Bundle bundle = new Bundle();
++        bundle.putInt("id", clickedItemIndex);
++        bundle.putString("title", messages.get(clickedItemIndex).getTitle());
++        intent.putExtra("data", bundle);
+         startActivity(intent);
+     }
++
++    @Override
++    public void onCommentClick() {
++        if(bnvMenu.getVisibility() == View.VISIBLE)
++            bnvMenu.setVisibility(View.GONE);
++        else
++            bnvMenu.setVisibility(View.VISIBLE);
++    }
+ }
+diff --git a/app/src/main/java/com/bytedance/AndroidFinal/Message/ChatRoom.java b/app/src/main/java/com/bytedance/AndroidFinal/Message/ChatRoom.java
+index a12d1b6..6851940 100644
+--- a/app/src/main/java/com/bytedance/AndroidFinal/Message/ChatRoom.java
++++ b/app/src/main/java/com/bytedance/AndroidFinal/Message/ChatRoom.java
+@@ -1,27 +1,40 @@
+ package com.bytedance.AndroidFinal.Message;
+ 
+-import android.content.Intent;
+ import android.os.Bundle;
+ import android.widget.TextView;
+-
+-import androidx.annotation.Nullable;
+ import androidx.appcompat.app.AppCompatActivity;
+-
+ import com.bytedance.AndroidFinal.R;
++import android.view.View;
++import android.widget.ImageButton;
+ 
+-public class ChatRoom extends AppCompatActivity {
+-    private TextView contentText;
+-    public static final String CLICK_POS_KEY = "clickPos";
++public class ChatRoom extends AppCompatActivity implements View.OnClickListener{
++    private TextView tvWithName;
++    private TextView tvInfo;
++    private TextView tvContentInfo;
++    private ImageButton button;
+ 
+     @Override
+-    public void onCreate(@Nullable Bundle savedInstanceState) {
++    public void onCreate(Bundle savedInstanceState){
+         super.onCreate(savedInstanceState);
+         setContentView(R.layout.activity_chatroom);
+-        contentText = findViewById(R.id.tv_content_info);
+-        Intent intent = getIntent();
+-        if (intent != null) {
+-            int clickPos = intent.getIntExtra(CLICK_POS_KEY, 0);
+-            contentText.setText("Index: " + String.valueOf(clickPos));
+-        }
++
++        tvWithName = findViewById(R.id.tv_with_name);
++        tvContentInfo = findViewById(R.id.tv_content_info);
++        button = findViewById(R.id.btn_back);
++
++        Bundle bundle = getIntent().getBundleExtra("data");
++        assert bundle != null;
++        int id = bundle.getInt("id");
++        String title = bundle.getString("title");
++
++        tvWithName.setText(title);
++        tvContentInfo.setText("这是第 " + (id+1) + "个消息");
++        button.setOnClickListener(this);
++    }
++
++    @Override
++    public void onClick(View v) {
++        if(v.getId() == R.id.btn_back)
++            finish();
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/app/src/main/java/com/bytedance/AndroidFinal/VideoAdapter.java b/app/src/main/java/com/bytedance/AndroidFinal/VideoAdapter.java
+index cb2792e..0ef3322 100644
+--- a/app/src/main/java/com/bytedance/AndroidFinal/VideoAdapter.java
++++ b/app/src/main/java/com/bytedance/AndroidFinal/VideoAdapter.java
+@@ -28,6 +28,7 @@ import android.widget.Toast;
+ import android.widget.VideoView;
+ 
+ import androidx.annotation.NonNull;
++import androidx.appcompat.app.AppCompatActivity;
+ import androidx.recyclerview.widget.LinearLayoutManager;
+ import androidx.recyclerview.widget.RecyclerView;
+ import androidx.viewpager2.widget.ViewPager2;
+@@ -39,6 +40,7 @@ import com.bytedance.AndroidFinal.Comment.CommentContract;
+ import com.bytedance.AndroidFinal.Comment.CommentDbHelper;
+ import com.bytedance.AndroidFinal.Comment.CommentPopup;
+ import com.danikula.videocache.HttpProxyCacheServer;
++import com.google.android.material.bottomnavigation.BottomNavigationView;
+ import com.lxj.xpopup.XPopup;
+ import com.lxj.xpopup.interfaces.SimpleCallback;
+ 
+@@ -56,11 +58,11 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+     public List<VideoViewHolder> viewHolderList;
+     public List<Boolean> attachedHolders;
+     public Boolean isClickAllowed = true;
+-    private Context context;
++    private CommentClickListener listener;
+     private ViewPager2 viewPager;
+ 
+-    public VideoAdapter(Context context, ViewPager2 viewPager) {
+-        this.context = context;
++    public VideoAdapter(CommentClickListener listener, ViewPager2 viewPager) {
++        this.listener = listener;
+         viewHolderList = new ArrayList<>();
+         attachedHolders = new ArrayList<>();
+         this.viewPager = viewPager;
+@@ -155,6 +157,10 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+ 
+     }
+ 
++    public interface CommentClickListener {
++        void onCommentClick();
++    }
++
+     public class VideoViewHolder extends RecyclerView.ViewHolder {
+         // Data
+         public ApiResponse apiResponse;
+@@ -197,6 +203,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+         public Boolean isVideoPausedBeforeEnterComment = false;
+         public Boolean isInComment = false;
+ 
++        private BottomNavigationView bnvMenu;
++
+         public VideoViewHolder(@NonNull View itemView) {
+             super(itemView);
+             dbHelper = new CommentDbHelper(itemView.getContext());
+@@ -353,6 +361,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+                     return;
+                 try {
+                     showComment();
++                    if(listener != null)
++                        listener.onCommentClick();
+                     viewPager.setUserInputEnabled(false);
+                     isVideoPausedBeforeEnterComment = !videoView.isPlaying();
+                     isInComment = true;
+@@ -367,6 +377,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+                 if (!isClickAllowed)
+                     return;
+                 comment.setVisibility(View.GONE);
++                listener.onCommentClick();
+                 viewPager.setUserInputEnabled(true);
+                 isInComment = false;
+                 if (!isVideoPausedBeforeEnterComment)
+@@ -524,7 +535,6 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
+ 
+             Animation showAction = AnimationUtils.loadAnimation(context, R.anim.actionsheet_dialog_in);
+             comment.startAnimation(showAction);
+-
+             comment.setVisibility(View.VISIBLE);
+         }
+ 
+diff --git a/app/src/main/res/drawable-xxhdpi/back_button.png b/app/src/main/res/drawable-xxhdpi/back_button.png
+new file mode 100644
+index 0000000..2961a62
+Binary files /dev/null and b/app/src/main/res/drawable-xxhdpi/back_button.png differ
+diff --git a/app/src/main/res/drawable-xxhdpi/icon_video_share.png b/app/src/main/res/drawable-xxhdpi/icon_video_share.png
+new file mode 100644
+index 0000000..8146abd
+Binary files /dev/null and b/app/src/main/res/drawable-xxhdpi/icon_video_share.png differ
+diff --git a/app/src/main/res/layout/activity_chatroom.xml b/app/src/main/res/layout/activity_chatroom.xml
+index 734f42f..78ddd20 100644
+--- a/app/src/main/res/layout/activity_chatroom.xml
++++ b/app/src/main/res/layout/activity_chatroom.xml
+@@ -12,6 +12,20 @@
+         android:layout_height="45dp"
+         android:background="#161823">
+ 
++        <ImageButton
++            android:id="@+id/btn_back"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_centerVertical="true"
++            android:layout_marginStart="13dp"
++            android:layout_marginLeft="13dp"
++            android:layout_marginTop="13dp"
++            android:layout_marginEnd="13dp"
++            android:layout_marginRight="13dp"
++            android:layout_marginBottom="13dp"
++            android:background="@android:color/transparent"
++            android:src="@drawable/back_button" />
++
+         <TextView
+             android:id="@+id/tv_with_name"
+             android:layout_width="wrap_content"
+@@ -20,25 +34,29 @@
+             android:fontFamily="monospace"
+             android:textColor="#ffffff"
+             android:textSize="18sp"
+-            tools:text="消息" />
++            android:text="消息" />
++
++
++
++
+     </RelativeLayout>
+ 
+     <ScrollView
+         android:layout_width="match_parent"
+-        android:layout_height="match_parent"
++        android:layout_height="wrap_content"
+         android:layout_above="@id/edit_send_content"
+         android:layout_below="@id/header">
+ 
+         <TextView
+-            android:padding="16dp"
+             android:id="@+id/tv_content_info"
+             android:layout_width="match_parent"
+-            android:layout_height="match_parent"
++            android:layout_height="wrap_content"
+             android:fontFamily="casual"
++            android:padding="16dp"
++
+             android:textColor="#ffffff"
+             android:textSize="14sp"
+-            android:textStyle="normal"
+-            tools:text="skdjskdjskdjskdjskdjs" />
++            android:textStyle="normal" />
+ 
+     </ScrollView>
+ 
+diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
+index 5795d79..d5d1138 100644
+--- a/app/src/main/res/layout/activity_main.xml
++++ b/app/src/main/res/layout/activity_main.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<androidx.constraintlayout.widget.ConstraintLayout
++<FrameLayout
+     xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     xmlns:tools="http://schemas.android.com/tools"
+@@ -10,37 +10,29 @@
+     <androidx.viewpager2.widget.ViewPager2
+         android:id="@+id/video_info_viewpager2"
+         android:layout_width="match_parent"
+-        android:layout_height="0dp"
+-        app:layout_constraintBottom_toTopOf="@+id/bnv_bottom_select"
+-        app:layout_constraintTop_toTopOf="parent"
+-        app:layout_constraintStart_toStartOf="parent"
+-        app:layout_constraintEnd_toEndOf="parent"
++        android:layout_height="match_parent"
+         android:background="@android:color/background_dark"
+         android:orientation="vertical"/>
+ 
+     <com.google.android.material.bottomnavigation.BottomNavigationView
+         android:id="@+id/bnv_bottom_select"
+         android:layout_width="match_parent"
+-        android:layout_height="40dp"
+-        android:background="@android:color/background_dark"
+-        app:layout_constraintBottom_toBottomOf="parent"
+-        app:layout_constraintStart_toStartOf="parent"
+-        app:layout_constraintEnd_toEndOf="parent"
++        android:layout_height="32dp"
++        android:layout_gravity="bottom"
++        android:background="@android:color/transparent"
+         app:itemTextColor="@android:color/white"
++        app:itemIconSize="0dp"
+         app:labelVisibilityMode="auto"
+         app:menu="@menu/bottom_navigation_menu" />
+ 
+     <LinearLayout
+         android:id="@+id/message_layout"
+         android:layout_width="match_parent"
+-        android:layout_height="0dp"
+-        app:layout_constraintBottom_toTopOf="@+id/bnv_bottom_select"
+-        app:layout_constraintTop_toTopOf="parent"
+-        app:layout_constraintStart_toStartOf="parent"
+-        app:layout_constraintEnd_toEndOf="parent"
++        android:layout_height="match_parent"
+         android:background="@android:color/background_dark"
+         android:orientation="vertical"
+-        android:visibility="gone">
++        android:layout_gravity="top"
++>
+         <RelativeLayout
+             android:id="@+id/header"
+             android:layout_width="match_parent"
+@@ -51,7 +43,7 @@
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_centerInParent="true"
+-                android:text="Message"
++                android:text="消息"
+                 android:textSize="20sp"
+                 android:fontFamily="monospace"
+                 android:textColor="@android:color/white"/>
+@@ -67,4 +59,4 @@
+     </LinearLayout>
+ 
+ 
+-</androidx.constraintlayout.widget.ConstraintLayout>
+\ No newline at end of file
++</FrameLayout>
+\ No newline at end of file
+diff --git a/app/src/main/res/layout/my_item.xml b/app/src/main/res/layout/my_item.xml
+index cb07cbe..b1b9af2 100644
+--- a/app/src/main/res/layout/my_item.xml
++++ b/app/src/main/res/layout/my_item.xml
+@@ -60,7 +60,7 @@
+ 
+     <LinearLayout
+         android:layout_width="56dp"
+-        android:layout_height="150dp"
++        android:layout_height="200dp"
+         android:layout_gravity="bottom|end"
+         android:layout_marginBottom="50dp"
+         android:layout_marginEnd="15dp"
+@@ -91,13 +91,8 @@
+             android:id="@+id/like_count"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+-            android:layout_alignParentBottom="true"
+-            android:layout_centerHorizontal="true"
+-            android:layout_centerInParent="true"
+-            android:layout_centerVertical="true"
+             android:layout_marginBottom="10dp"
+-            android:textColor="@android:color/white"
+-            android:text="nvgngg"/>
++            android:textColor="@android:color/white" />
+ 
+         <ImageView
+             android:id="@+id/iv_comment"
+@@ -112,6 +107,21 @@
+             android:id="@+id/comment_count"
+             android:textColor="@android:color/white"
+             android:textSize="12sp" />
++
++        <ImageView
++            android:id="@+id/iv_share"
++            android:layout_width="50dp"
++            android:layout_height="50dp"
++            android:layout_marginBottom="3dp"
++            android:src="@drawable/icon_video_share" />
++
++        <TextView
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:id="@+id/share_count"
++            android:textColor="@android:color/white"
++            android:textSize="12sp"
++            android:text="0"/>
+     </LinearLayout>
+ 
+     <RelativeLayout
+@@ -146,7 +156,6 @@
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:layout_centerInParent="true"
+-                android:text="全部评论(253)"
+                 android:textColor="#FF333333"
+                 android:textSize="13sp" />
+         </RelativeLayout>
+diff --git a/app/src/main/res/menu/bottom_navigation_menu.xml b/app/src/main/res/menu/bottom_navigation_menu.xml
+index 20c63de..e5540eb 100644
+--- a/app/src/main/res/menu/bottom_navigation_menu.xml
++++ b/app/src/main/res/menu/bottom_navigation_menu.xml
+@@ -4,7 +4,8 @@
+         android:id="@+id/main_page"
+         android:enabled="true"
+         android:title="@string/main_page"
+-        android:icon="@android:color/transparent" />
++        android:icon="@android:color/transparent"
++        />
+     <item
+         android:id="@+id/message_page"
+         android:enabled="true"
+diff --git a/app/src/main/res/values/demens.xml b/app/src/main/res/values/demens.xml
+index cb8f38e..dfdd2df 100644
+--- a/app/src/main/res/values/demens.xml
++++ b/app/src/main/res/values/demens.xml
+@@ -1,5 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources xmlns:tools="http://schemas.android.com/tools">
+-    <dimen name="design_bottom_navigation_text_size" tools:override="true">20sp</dimen>
+-    <dimen name="design_bottom_navigation_active_text_size" tools:override="true">25sp</dimen>
++    <dimen name="design_bottom_navigation_text_size" tools:override="true">14sp</dimen>
++    <dimen name="design_bottom_navigation_active_text_size" tools:override="true">18sp</dimen>
++    <dimen name="design_bottom_navigation_height" tools:override="true">35dp</dimen>
+ </resources>
+\ No newline at end of file

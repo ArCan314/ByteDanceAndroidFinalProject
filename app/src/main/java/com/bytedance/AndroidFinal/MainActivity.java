@@ -42,7 +42,9 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
     private RecyclerView rvMessage;
     private LinearLayout messageLayout;
     private List<Message> messages;
+    private static int progress = -1;
     private int currentSelectedItemId = -1;
+    private boolean enterChatroom = false;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -72,15 +74,19 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
             currentSelectedItemId = item.getItemId();
             switch (item.getItemId()) {
                 case R.id.main_page:
-                    videoAdapter.restore();
+                    Log.d("progress2", String.valueOf(progress));
+                    videoAdapter.restore(progress, enterChatroom);
                     viewPager2.setUserInputEnabled(true);
                     videoAdapter.isClickAllowed = true;
                     messageLayout.setVisibility(View.INVISIBLE);
                     bnvMenu.setBackgroundColor(Color.TRANSPARENT);
+                    enterChatroom = false;
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
                         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
                     return true;
                 case R.id.message_page:
+                    progress = videoAdapter.getProgress();
+                    Log.d("progress1", String.valueOf(progress));
                     videoAdapter.save();
                     viewPager2.setUserInputEnabled(false);
                     videoAdapter.isClickAllowed = false;
@@ -157,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
         bundle.putInt("id", clickedItemIndex);
         bundle.putString("title", messages.get(clickedItemIndex).getTitle());
         intent.putExtra("data", bundle);
+        enterChatroom = true;
         startActivity(intent);
     }
 

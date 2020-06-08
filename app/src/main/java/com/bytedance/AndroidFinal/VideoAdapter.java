@@ -149,12 +149,18 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
         }
     }
 
-    public void restore() {
+    public void restore(int progress, boolean enterChatroom) {
         if (!isInComment && isVideoStarted) {
-            viewHolderList.get(getCurrentPos()).videoView.start();
+            if(enterChatroom)
+                viewHolderList.get(getCurrentPos()).videoView.seekTo(progress);
+            else
+                viewHolderList.get(getCurrentPos()).videoView.start();
             viewHolderList.get(getCurrentPos()).playIcon.setVisibility(View.INVISIBLE);
         }
+    }
 
+    public int getProgress() {
+        return viewHolderList.get(getCurrentPos()).videoView.getCurrentPosition();
     }
 
     public interface CommentClickListener {
@@ -195,6 +201,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
         private final SimpleDateFormat format =
                 new SimpleDateFormat("MM-dd HH:mm", Locale.ENGLISH);
 
+        private ImageView iv_share;
+
         // Animation and ClickListener
         private LottieAnimationView animationView;
         private Handler clickHandler, handler;
@@ -213,6 +221,18 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             getViewsById(itemView);
             setAnimation(itemView);
             setAllClickHandler(itemView);
+
+            videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    mp.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
+                        @Override
+                        public void onSeekComplete(MediaPlayer mp) {
+                            videoView.start();
+                        }
+                    });
+                }
+            });
 
             // 播放完毕时自动重播
             videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -278,6 +298,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             comment_content = itemView.findViewById(R.id.comment_content);
             comment_count = itemView.findViewById(R.id.comment_count);
             total_comment = itemView.findViewById(R.id.total_comment);
+            iv_share = itemView.findViewById(R.id.iv_share);
         }
 
         public void setAnimation(@NonNull View itemView) {
@@ -394,8 +415,6 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
-
-
                     // SoftKeyHideShow.hideShowSoftKey(context);
                 }
             });
@@ -465,6 +484,13 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                     if (!isClickAllowed)
                         return true;
                     return gestureDetector.onTouchEvent(event);
+                }
+            });
+
+            iv_share.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
                 }
             });
         }
