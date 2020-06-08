@@ -28,6 +28,7 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -57,11 +58,11 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
     public List<VideoViewHolder> viewHolderList;
     public List<Boolean> attachedHolders;
     public Boolean isClickAllowed = true;
-    private Context context;
+    private CommentClickListener listener;
     private ViewPager2 viewPager;
 
-    public VideoAdapter(Context context, ViewPager2 viewPager) {
-        this.context = context;
+    public VideoAdapter(CommentClickListener listener, ViewPager2 viewPager) {
+        this.listener = listener;
         viewHolderList = new ArrayList<>();
         attachedHolders = new ArrayList<>();
         this.viewPager = viewPager;
@@ -154,6 +155,10 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             viewHolderList.get(getCurrentPos()).playIcon.setVisibility(View.INVISIBLE);
         }
 
+    }
+
+    public interface CommentClickListener {
+        void onCommentClick();
     }
 
     public class VideoViewHolder extends RecyclerView.ViewHolder {
@@ -356,6 +361,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                     return;
                 try {
                     showComment();
+                    if(listener != null)
+                        listener.onCommentClick();
                     viewPager.setUserInputEnabled(false);
                     isVideoPausedBeforeEnterComment = !videoView.isPlaying();
                     isInComment = true;
@@ -370,6 +377,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                 if (!isClickAllowed)
                     return;
                 comment.setVisibility(View.GONE);
+                listener.onCommentClick();
                 viewPager.setUserInputEnabled(true);
                 isInComment = false;
                 if (!isVideoPausedBeforeEnterComment)

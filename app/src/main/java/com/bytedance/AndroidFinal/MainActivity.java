@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
@@ -33,7 +34,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity implements MessageAdapter.ListItemClickListener {
+public class MainActivity extends AppCompatActivity implements MessageAdapter.ListItemClickListener, VideoAdapter.CommentClickListener {
 
     private ViewPager2 viewPager2;
     private VideoAdapter videoAdapter;
@@ -157,5 +158,13 @@ public class MainActivity extends AppCompatActivity implements MessageAdapter.Li
         bundle.putString("title", messages.get(clickedItemIndex).getTitle());
         intent.putExtra("data", bundle);
         startActivity(intent);
+    }
+
+    @Override
+    public void onCommentClick() {
+        if(bnvMenu.getVisibility() == View.VISIBLE)
+            bnvMenu.setVisibility(View.GONE);
+        else
+            bnvMenu.setVisibility(View.VISIBLE);
     }
 }
