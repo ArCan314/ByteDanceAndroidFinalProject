@@ -24,6 +24,7 @@
         app:itemTextColor="@android:color/white"
         app:itemIconSize="0dp"
         app:labelVisibilityMode="auto"
+        app:elevation="0dp"
         app:menu="@menu/bottom_navigation_menu" />
 
     <LinearLayout
