@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.BaseColumns;
@@ -25,12 +24,12 @@ import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
@@ -194,6 +193,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
         private int count;
 
         // Comment
+        private RelativeLayout rl_bottom;
         private ImageView iv_comment;
         private TextView tv_send, comment_count, total_comment;
         public LinearLayout close_comment;
@@ -306,6 +306,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
             total_comment = itemView.findViewById(R.id.total_comment);
             iv_share = itemView.findViewById(R.id.iv_share);
             shareCount = itemView.findViewById(R.id.share_count);
+            rl_bottom = itemView.findViewById(R.id.rl_bottom);
         }
 
         public void setAnimation(@NonNull View itemView) {
@@ -432,6 +433,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                     if (!isClickAllowed)
                         return;
                     CommentPopup commentPopup = new CommentPopup(context);
+                    rl_bottom.setVisibility(View.INVISIBLE);
 
                     new XPopup.Builder(context)
                             .autoOpenSoftInput(true)
@@ -444,6 +446,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoViewHol
                                 @Override
                                 public void onDismiss() {
                                     comment_content.setText(commentPopup.getContent());
+                                    rl_bottom.setVisibility(View.VISIBLE);
                                     if (commentPopup.confirmClicked) {
                                         tv_send.performClick();
                                     }
