@@ -67,6 +67,13 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                 intent.putExtra("likecount", apiResponse.likeCount);
                 context.startActivity(intent);
             });
+            imageView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, VideoPlayerActivity.class);
+                intent.putExtra("url", apiResponse.url);
+                intent.putExtra("description", apiResponse.description);
+                intent.putExtra("likecount", apiResponse.likeCount);
+                context.startActivity(intent);
+            });
         }
 
         public void bind(ApiResponse apiResponse) {
